@@ -4,6 +4,7 @@ import * as pactum from 'pactum';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthDto } from '../src/auth/dto';
+import { EditUserDto } from 'src/user/dto/edit-user.dto';
 
 describe('AppModule (e2e)', () => {
 
@@ -164,6 +165,42 @@ describe('AppModule (e2e)', () => {
       });
     });
 
-    describe('Edit Profile', () => {});
+    describe('Edit Profile', () => {
+
+      const editUserDto: EditUserDto = {
+        firstName: 'NewFirstName',
+        lastName: 'NewLastName',
+        email: 'new-email@example.com',
+      };
+
+      it('should not edit profile if not authenticated', () => {
+        return pactum
+          .spec()
+          .patch('/users/me')
+          .expectStatus(401);
+      });
+
+      it('should edit profile', () => {
+        return pactum
+          .spec()
+          .patch('/users/me')
+          .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+          .withBody(editUserDto)
+          .expectStatus(200)
+          .expectBodyContains(editUserDto.firstName)
+          .expectBodyContains(editUserDto.lastName)
+          .expectBodyContains(editUserDto.email);
+      });
+
+      it('should not allow editing of the role field', () => {
+        return pactum
+          .spec()
+          .patch('/users/me')
+          .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+          .withBody({ role: 'ADMIN' })
+          .expectStatus(200)
+          .expectBodyContains('USER');
+      });
+    });
   });
 });

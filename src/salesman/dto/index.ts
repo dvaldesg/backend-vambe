@@ -1,1 +1,1 @@
-export * from './salesman.dto';
+export * from './create-salesman.dto';

@@ -5,7 +5,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthDto } from '../src/auth/dto';
 import { EditUserDto } from '../src/user/dto/';
-import { SalesmanDto } from '../src/salesman/dto';
+import { CreateSalesmanDto } from '../src/salesman/dto';
 
 describe('AppModule (e2e)', () => {
 
@@ -207,7 +207,7 @@ describe('AppModule (e2e)', () => {
 
   describe('Salesman', () => {
 
-    const salesmanDto: SalesmanDto = {
+    const salesmanDto: CreateSalesmanDto = {
       name: 'John Doe',
     }
 
@@ -225,7 +225,8 @@ describe('AppModule (e2e)', () => {
         .withHeaders({ Authorization: 'Bearer $S{userToken}' })
         .withBody(salesmanDto)
         .expectStatus(201)
-        .expectBodyContains(salesmanDto.name);
+        .expectBodyContains(salesmanDto.name)
+        .stores('salesmanId', 'id');
     });
 
     it('should get all salesmen', () => {
@@ -238,6 +239,23 @@ describe('AppModule (e2e)', () => {
         .expectJsonLike([{
           name: salesmanDto.name,
         }]);
-    });    
+    });
+    
+    it('should get a salesman by ID', () => {
+      return pactum
+        .spec()
+        .get('/salesmen/$S{salesmanId}')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectBodyContains(salesmanDto.name);
+    });
+
+    it('should return error for non-existent salesman', () => {
+    return pactum
+      .spec()
+      .get('/salesmen/999999')
+      .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+      .expectStatus(404);
+    });
   });
 });

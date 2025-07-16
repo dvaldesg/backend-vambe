@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
 import { JwtGuard } from '../auth/guard';
 import { SalesmanService } from './salesman.service';
-import { SalesmanDto } from './dto';
+import { CreateSalesmanDto } from './dto';
 
 @UseGuards(JwtGuard)
 @Controller('salesmen')
@@ -9,12 +9,17 @@ export class SalesmanController {
     constructor(private salesmanService: SalesmanService) {}
 
     @Get()
-    getSalesman() {
+    getSalesmen() {
         return this.salesmanService.getAllSalesmen();
     }
 
     @Post()
-    createSalesman(@Body() dto: SalesmanDto) {
+    createSalesman(@Body() dto: CreateSalesmanDto) {
         return this.salesmanService.createSalesman(dto);
+    }
+
+    @Get(':id')
+    getSalesman(@Param('id', ParseIntPipe) id: number) {
+        return this.salesmanService.getSalesmanById(id);
     }
 }

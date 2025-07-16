@@ -1,6 +1,6 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SalesmanDto } from './dto';
+import { CreateSalesmanDto } from './dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class SalesmanService {
         return salesmen;
     }
 
-    async createSalesman(dto: SalesmanDto) {
+    async createSalesman(dto: CreateSalesmanDto) {
 
         const salesman = await this.prisma.salesman.findMany({
             where: {
@@ -42,5 +42,17 @@ export class SalesmanService {
 
             throw error;
         }
+    }
+
+    async getSalesmanById(id: number) {
+        const salesman = await this.prisma.salesman.findUnique({
+            where: { id },
+        });
+
+        if (!salesman) {
+            throw new NotFoundException('Salesman not found');
+        }
+
+        return salesman;
     }
 }

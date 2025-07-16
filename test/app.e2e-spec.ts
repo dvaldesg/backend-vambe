@@ -203,4 +203,21 @@ describe('AppModule (e2e)', () => {
       });
     });
   });
+
+  describe('Salesman', () => {
+    it('should not allow access to salesman routes if not authenticated', () => {
+      return pactum
+        .spec()
+        .get('/salesman')
+        .expectStatus(401);
+    });
+
+    it('should allow access to salesman routes if authenticated as a salesman', () => {
+      return pactum
+        .spec()
+        .get('/salesman')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200);
+    });
+  });
 });

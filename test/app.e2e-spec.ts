@@ -4,7 +4,8 @@ import * as pactum from 'pactum';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthDto } from '../src/auth/dto';
-import { EditUserDto } from 'src/user/dto/edit-user.dto';
+import { EditUserDto } from '../src/user/dto/';
+import { SalesmanDto } from '../src/salesman/dto';
 
 describe('AppModule (e2e)', () => {
 
@@ -205,19 +206,38 @@ describe('AppModule (e2e)', () => {
   });
 
   describe('Salesman', () => {
+
+    const salesmanDto: SalesmanDto = {
+      name: 'John Doe',
+    }
+
     it('should not allow access to salesman routes if not authenticated', () => {
       return pactum
         .spec()
-        .get('/salesman')
+        .get('/salesmen')
         .expectStatus(401);
     });
 
-    it('should allow access to salesman routes if authenticated as a salesman', () => {
+    it('should create a salesman', () => {
       return pactum
         .spec()
-        .get('/salesman')
+        .post('/salesmen')
         .withHeaders({ Authorization: 'Bearer $S{userToken}' })
-        .expectStatus(200);
+        .withBody(salesmanDto)
+        .expectStatus(201)
+        .expectBodyContains(salesmanDto.name);
     });
+
+    it('should get all salesmen', () => {
+      return pactum
+        .spec()
+        .get('/salesmen')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectJsonLength(1)
+        .expectJsonLike([{
+          name: salesmanDto.name,
+        }]);
+    });    
   });
 });

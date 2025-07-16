@@ -95,6 +95,46 @@ describe('AppModule (e2e)', () => {
     });
 
     describe('Sign In', () => {
+      it('should throw an error if email is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({ password: dto.password })
+          .expectStatus(400);
+      });
+
+      it('should throw an error if password is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({ email: dto.email })
+          .expectStatus(400);
+      });
+
+      it('should throw an error if email and password are empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({})
+          .expectStatus(400);
+      });
+
+      it('should throw an error if email is invalid', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({ email: 'invalid-email', password: dto.password })
+          .expectStatus(400);
+      });
+
+      it('should throw an error if password is incorrect', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({ email: dto.email, password: 'wrong-password' })
+          .expectStatus(403);
+      });
+
       it('should sign in a user', () => {
         return pactum
           .spec()

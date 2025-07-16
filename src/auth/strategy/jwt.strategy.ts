@@ -2,7 +2,7 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService } from "src/prisma/prisma.service";
+import { PrismaService } from "../../prisma/prisma.service";
 
 interface JwtPayload {
     sub: number;
@@ -37,6 +37,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
             throw new Error('User not found');
         }
 
-        return { userId: payload.sub, email: payload.email };
+        return user;
     }
 }

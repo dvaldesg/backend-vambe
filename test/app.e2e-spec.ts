@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AppModule } from '../src/app.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import * as pactum from 'pactum';
+import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { AuthDto } from '../src/auth/dto';
 
 describe('AppModule (e2e)', () => {
 
@@ -23,14 +25,89 @@ describe('AppModule (e2e)', () => {
     );
 
     await app.init();
+    await app.listen(3334);
 
     prisma = app.get<PrismaService>(PrismaService);
     await prisma.cleanDb();
+
+    pactum.request.setBaseUrl('http://localhost:3334');
   });
 
   afterAll(() => {
     app.close();
   });
   
-  it.todo('should pass');
+  describe('Auth', () => {
+
+    const dto: AuthDto = {
+      email: 'test@example.com',
+      password: 'password',
+    };
+
+    describe('Sign Up', () => {
+      it('should throw an error if email is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({ password: dto.password })
+          .expectStatus(400);
+      });
+
+      it('should throw an error if password is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({ email: dto.email })
+          .expectStatus(400);
+      });
+
+      it('should throw an error if email and password are empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({})
+          .expectStatus(400);
+      });
+
+      it('should throw an error if email is invalid', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({ email: 'invalid-email', password: dto.password })
+          .expectStatus(400);
+      });
+
+      it('should sign up a user', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody(dto)
+          .expectStatus(201);
+      });
+
+      it('should throw an error if email is already taken', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody(dto)
+          .expectStatus(403);
+      });
+    });
+
+    describe('Sign In', () => {
+      it('should sign in a user', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody(dto)
+          .expectStatus(200);
+      });
+    });
+  });
+
+  describe('User', () => {
+    describe('Get Me', () => {});
+
+    describe('Edit Profile', () => {});
+  });
 });

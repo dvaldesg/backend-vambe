@@ -16,6 +16,14 @@ export class AuthService {
 
     async signUp(dto: AuthDto) {
 
+        const user = await this.prisma.user.findUnique({
+            where: {
+                email: dto.email,
+            },
+        });
+
+        if (user) throw new ForbiddenException('Credentials email already exists');
+
         const hash = await argon.hash(dto.password);
         try {
             const user = await this.prisma.user.create({

@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
 import { SalesmanModule } from './salesman/salesman.module';
 import { ClientMeetingModule } from './client_meeting/client_meeting.module';
+import { CsvParserModule } from './csv_parser/csv_parser.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ClientMeetingModule } from './client_meeting/client_meeting.module';
     UserModule,
     SalesmanModule,
     ClientMeetingModule,
+    CsvParserModule,
   ],
 })
 export class AppModule {}

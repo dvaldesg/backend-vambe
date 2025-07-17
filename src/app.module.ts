@@ -7,6 +7,7 @@ import { UserModule } from './user/user.module';
 import { SalesmanModule } from './salesman/salesman.module';
 import { ClientMeetingModule } from './client_meeting/client_meeting.module';
 import { CsvParserModule } from './csv_parser/csv_parser.module';
+import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CsvParserModule } from './csv_parser/csv_parser.module';
     SalesmanModule,
     ClientMeetingModule,
     CsvParserModule,
+    SeedModule,
   ],
 })
 export class AppModule {}

@@ -6,6 +6,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthDto } from '../src/auth/dto';
 import { EditUserDto } from '../src/user/dto/';
 import { CreateSalesmanDto } from '../src/salesman/dto';
+import { ClientMeetingDto } from '../src/client_meeting/dto';
 
 describe('AppModule (e2e)', () => {
 
@@ -214,7 +215,7 @@ describe('AppModule (e2e)', () => {
     it('should not allow access to salesman routes if not authenticated', () => {
       return pactum
         .spec()
-        .get('/salesmen')
+        .get('/salesmen/all')
         .expectStatus(401);
     });
 
@@ -232,7 +233,7 @@ describe('AppModule (e2e)', () => {
     it('should get all salesmen', () => {
       return pactum
         .spec()
-        .get('/salesmen')
+        .get('/salesmen/all')
         .withHeaders({ Authorization: 'Bearer $S{userToken}' })
         .expectStatus(200)
         .expectJsonLength(1)
@@ -256,6 +257,48 @@ describe('AppModule (e2e)', () => {
       .get('/salesmen/999999')
       .withHeaders({ Authorization: 'Bearer $S{userToken}' })
       .expectStatus(404);
+    });
+  });
+
+  describe('ClientMeeting', () => {
+    const clientMeetingDto: ClientMeetingDto = {
+      name: 'Client Name',
+      email: 'client@example.com',
+      phone: '1234567890',
+      salesmanName: 'John Doe',
+      date: '2023-10-01',
+      closed: true,
+      transcription: 'Meeting transcription',
+    }
+
+    it('should not allow access to client meetings if not authenticated', () => {
+      return pactum
+        .spec()
+        .get('/client-meetings/all')
+        .expectStatus(401);
+    });
+
+    it('should create a client meeting', () => {
+      return pactum
+        .spec()
+        .post('/client-meetings')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withBody(clientMeetingDto)
+        .expectStatus(201)
+        .expectBodyContains(clientMeetingDto.name)
+        .stores('clientMeetingId', 'id');
+    });
+
+    it('should get all client meetings', () => {
+      return pactum
+        .spec()
+        .get('/client-meetings/all')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectJsonLength(1)
+        .expectJsonLike([{
+          name: clientMeetingDto.name,
+        }]);
     });
   });
 });

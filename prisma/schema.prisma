@@ -19,57 +19,6 @@ enum Role {
   ADMIN
 }
 
-model User {
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  email String @unique
-  hash String
-  role Role @default(USER)
-
-  firstName String?
-  lastName String?
-
-  @@map("users")
-}
-
-model Salesman {
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  name String
-
-  meetings ClientMeeting[]
-
-  @@map("salesmen")
-}
-
-model ClientMeeting {
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  name String
-  email String
-  phone String
-
-  salesmanName String
-  salesmanId Int
-  salesman Salesman @relation(fields: [salesmanId], references: [id])
-
-  date DateTime
-  closed Boolean @default(false)
-
-  transcription String? @db.Text
-
-  classification ClientClassification? @relation(fields: [classificationId], references: [id], onDelete: Cascade)
-  classificationId Int? @unique
-
-  @@map("meetings")
-}
-
 enum CommercialSector {
   RETAIL
   MANUFACTURING
@@ -129,36 +78,86 @@ enum VambeModel {
   API
 }
 
+model User {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email String @unique
+  hash  String
+  role  Role   @default(USER)
+
+  firstName String?
+  lastName  String?
+
+  @@map("users")
+}
+
+model Salesman {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name String
+
+  meetings ClientMeeting[]
+
+  @@map("salesmen")
+}
+
+model ClientMeeting {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name  String
+  email String
+  phone String
+
+  salesmanName String
+  salesmanId   Int
+  salesman     Salesman @relation(fields: [salesmanId], references: [id])
+
+  date   DateTime
+  closed Boolean  @default(false)
+
+  transcription String? @db.Text
+
+  classification ClientClassification?
+
+  @@map("meetings")
+}
+
 model ClientClassification {
-  id Int @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   commercialSector CommercialSector
-  leadSource LeadSource
-  interestReason InterestReason
+  leadSource       LeadSource
+  interestReason   InterestReason
 
-  clientMeetingId Int @unique
-  clientMeeting ClientMeeting @relation(fields: [clientMeetingId], references: [id])
+  clientMeetingId Int           @unique
+  clientMeeting   ClientMeeting @relation(fields: [clientMeetingId], references: [id], onDelete: Cascade)
 
-  hasDemandPeaks Boolean @default(false)
+  hasDemandPeaks    Boolean @default(false)
   hasSeasonalDemand Boolean @default(false)
 
-  estimatedDailyInteractions Int @default(0)
-  estimatedWeeklyInteractions Int @default(0)
+  estimatedDailyInteractions   Int @default(0)
+  estimatedWeeklyInteractions  Int @default(0)
   estimatedMonthlyInteractions Int @default(0)
 
-  hasTechTeam Boolean @default(false)
-  vambeModel VambeModel?
+  hasTechTeam Boolean     @default(false)
+  vambeModel  VambeModel?
 
   isPotentialClient Boolean @default(false)
-  isProblemClient Boolean @default(false)
-  isLostClient Boolean @default(false)
+  isProblemClient   Boolean @default(false)
+  isLostClient      Boolean @default(false)
 
   shouldBeContacted Boolean @default(false)
 
   confidenceScore Float?
-  modelVersion String?
+  modelVersion    String?
 
   @@map("client_classifications")
 }

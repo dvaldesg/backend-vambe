@@ -301,4 +301,42 @@ describe('AppModule (e2e)', () => {
         }]);
     });
   });
+
+  describe('CSV Upload', () => {
+    it('should not allow access to CSV upload if not authenticated', () => {
+      return pactum
+        .spec()
+        .post('/csv-parser/client-meetings')
+        .expectStatus(401);
+    });
+
+    it('should upload a CSV file and process it', () => {
+      return pactum
+        .spec()
+        .post('/csv-parser/client-meetings')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withFile('file', 'test/client-meetings.csv')
+        .expectStatus(201)
+        .expectBodyContains('Successfully processed');
+    });
+  
+    it('should return error for invalid CSV file', () => {
+      return pactum
+        .spec()
+        .post('/csv-parser/client-meetings')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withFile('file', 'test/invalid-client-meetings.csv')
+        .expectStatus(400)
+        .expectBodyContains('Error processing CSV file: No valid rows found in CSV file');
+    });
+
+    it('should return error for missing CSV file', () => {
+      return pactum
+        .spec()
+        .post('/csv-parser/client-meetings')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(400)
+        .expectBodyContains('No file uploaded');
+    });
+  });
 });

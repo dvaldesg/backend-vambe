@@ -55,6 +55,7 @@ model ClientMeeting {
   email String
   phone String
 
+  salesmanName String
   salesmanId Int
   salesman Salesman @relation(fields: [salesmanId], references: [id])
 

@@ -8,7 +8,7 @@ import { CreateSalesmanDto } from './dto';
 export class SalesmanController {
     constructor(private salesmanService: SalesmanService) {}
 
-    @Get()
+    @Get('all')
     getSalesmen() {
         return this.salesmanService.getAllSalesmen();
     }

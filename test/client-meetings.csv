@@ -1,0 +1,4 @@
+Nombre,Correo Electronico,Numero de Telefono,Fecha de la Reunion,Vendedor asignado,closed,Transcripcion
+Pedro Martinez,p.martinez@example.com,56912345678,2024-01-15,Juan Pérez,1,"Cliente inicial interesado en servicios básicos"
+Ana Rodriguez,a.rodriguez@example.com,56987654321,2024-01-20,Maria López,0,"Consulta sobre productos premium"
+Carlos Silva,c.silva@example.com,56955443322,2024-02-01,Juan Pérez,1,"Venta exitosa de paquete completo"

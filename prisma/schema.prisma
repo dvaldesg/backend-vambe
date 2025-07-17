@@ -33,3 +33,36 @@ model User {
 
   @@map("users")
 }
+
+model Salesman {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name String
+
+  meetings ClientMeeting[]
+
+  @@map("salesmen")
+}
+
+model ClientMeeting {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name String
+  email String
+  phone String
+
+  salesmanName String
+  salesmanId Int
+  salesman Salesman @relation(fields: [salesmanId], references: [id])
+
+  date DateTime
+  closed Boolean @default(false)
+
+  transcription String? @db.Text
+
+  @@map("meetings")
+}

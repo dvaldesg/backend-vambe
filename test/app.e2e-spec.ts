@@ -4,7 +4,9 @@ import * as pactum from 'pactum';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthDto } from '../src/auth/dto';
-import { EditUserDto } from 'src/user/dto/edit-user.dto';
+import { EditUserDto } from '../src/user/dto/';
+import { CreateSalesmanDto } from '../src/salesman/dto';
+import { ClientMeetingDto } from '../src/client_meeting/dto';
 
 describe('AppModule (e2e)', () => {
 
@@ -201,6 +203,102 @@ describe('AppModule (e2e)', () => {
           .expectStatus(200)
           .expectBodyContains('USER');
       });
+    });
+  });
+
+  describe('Salesman', () => {
+
+    const salesmanDto: CreateSalesmanDto = {
+      name: 'John Doe',
+    }
+
+    it('should not allow access to salesman routes if not authenticated', () => {
+      return pactum
+        .spec()
+        .get('/salesmen/all')
+        .expectStatus(401);
+    });
+
+    it('should create a salesman', () => {
+      return pactum
+        .spec()
+        .post('/salesmen')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withBody(salesmanDto)
+        .expectStatus(201)
+        .expectBodyContains(salesmanDto.name)
+        .stores('salesmanId', 'id');
+    });
+
+    it('should get all salesmen', () => {
+      return pactum
+        .spec()
+        .get('/salesmen/all')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectJsonLength(1)
+        .expectJsonLike([{
+          name: salesmanDto.name,
+        }]);
+    });
+    
+    it('should get a salesman by ID', () => {
+      return pactum
+        .spec()
+        .get('/salesmen/$S{salesmanId}')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectBodyContains(salesmanDto.name);
+    });
+
+    it('should return error for non-existent salesman', () => {
+    return pactum
+      .spec()
+      .get('/salesmen/999999')
+      .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+      .expectStatus(404);
+    });
+  });
+
+  describe('ClientMeeting', () => {
+    const clientMeetingDto: ClientMeetingDto = {
+      name: 'Client Name',
+      email: 'client@example.com',
+      phone: '1234567890',
+      salesmanName: 'John Doe',
+      date: '2023-10-01',
+      closed: true,
+      transcription: 'Meeting transcription',
+    }
+
+    it('should not allow access to client meetings if not authenticated', () => {
+      return pactum
+        .spec()
+        .get('/client-meetings/all')
+        .expectStatus(401);
+    });
+
+    it('should create a client meeting', () => {
+      return pactum
+        .spec()
+        .post('/client-meetings')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withBody(clientMeetingDto)
+        .expectStatus(201)
+        .expectBodyContains(clientMeetingDto.name)
+        .stores('clientMeetingId', 'id');
+    });
+
+    it('should get all client meetings', () => {
+      return pactum
+        .spec()
+        .get('/client-meetings/all')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectJsonLength(1)
+        .expectJsonLike([{
+          name: clientMeetingDto.name,
+        }]);
     });
   });
 });

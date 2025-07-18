@@ -7,6 +7,8 @@ import { AuthDto } from '../src/auth/dto';
 import { EditUserDto } from '../src/user/dto/';
 import { CreateSalesmanDto } from '../src/salesman/dto';
 import { ClientMeetingDto } from '../src/client_meeting/dto';
+import { CreateClientClassificationDto, UpdateClientClassificationDto } from '../src/client_classification/dto';
+import { CommercialSector, LeadSource, InterestReason, VambeModel } from '../src/client_classification/enum';
 
 describe('AppModule (e2e)', () => {
 
@@ -337,6 +339,154 @@ describe('AppModule (e2e)', () => {
         .withHeaders({ Authorization: 'Bearer $S{userToken}' })
         .expectStatus(400)
         .expectBodyContains('No file uploaded');
+    });
+  });
+
+  describe('ClientClassification', () => {
+
+    const createClassificationDto: Omit<CreateClientClassificationDto, 'clientMeetingId'> = {
+      commercialSector: CommercialSector.FINANCIAL_SERVICES,
+      leadSource: LeadSource.CONFERENCE,
+      interestReason: InterestReason.USER_EXPERIENCE,
+      hasDemandPeaks: false,
+      hasSeasonalDemand: false,
+      estimatedDailyInteractions: 71,
+      estimatedWeeklyInteractions: 500,
+      estimatedMonthlyInteractions: 2200,
+      hasTechTeam: false,
+      vambeModel: VambeModel.MERCUR,
+      isPotentialClient: true,
+      isProblemClient: false,
+      isLostClient: false,
+      shouldBeContacted: true,
+      confidenceScore: 0.99,
+      modelVersion: "test-gpt"
+    };
+
+    const updateClassificationDto: UpdateClientClassificationDto = {
+      isPotentialClient: false,
+      confidenceScore: 0.85
+    };
+
+    const duplicateClassificationDto: Omit<CreateClientClassificationDto, 'clientMeetingId'> = {
+      commercialSector: CommercialSector.TECHNOLOGY,
+      leadSource: LeadSource.REFERRAL,
+      interestReason: InterestReason.FEATURES
+    };
+
+    const invalidMeetingClassificationDto: CreateClientClassificationDto = {
+      clientMeetingId: 999999,
+      commercialSector: CommercialSector.TECHNOLOGY,
+      leadSource: LeadSource.REFERRAL,
+      interestReason: InterestReason.FEATURES
+    };
+
+    it('should not allow access to client classifications if not authenticated', () => {
+      return pactum
+        .spec()
+        .get('/client-classifications/all')
+        .expectStatus(401);
+    });
+
+    it('should create a manual client classification', () => {
+      return pactum
+        .spec()
+        .post('/client-classifications')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withBody({
+          ...createClassificationDto,
+          clientMeetingId: '$S{clientMeetingId}'
+        })
+        .expectStatus(201)
+        .stores('classificationId', 'id');
+    });
+
+    it('should get all client classifications', () => {
+      return pactum
+        .spec()
+        .get('/client-classifications/all')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectJsonLength(1);
+    });
+
+    it('should get a classification by ID', () => {
+      return pactum
+        .spec()
+        .get('/client-classifications/$S{classificationId}')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectBodyContains('FINANCIAL_SERVICES');
+    });
+
+    it('should get a classification by meeting ID', () => {
+      return pactum
+        .spec()
+        .get('/client-classifications/meeting/$S{clientMeetingId}')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectBodyContains('FINANCIAL_SERVICES');
+    });
+
+    it('should update a classification', () => {
+      return pactum
+        .spec()
+        .patch('/client-classifications/$S{classificationId}')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withBody(updateClassificationDto)
+        .expectStatus(200)
+        .expectBodyContains('"isPotentialClient":false')
+        .expectBodyContains('0.85');
+    });
+
+    it('should not create duplicate classification for same meeting', () => {
+      return pactum
+        .spec()
+        .post('/client-classifications')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withBody({
+          ...duplicateClassificationDto,
+          clientMeetingId: '$S{clientMeetingId}'
+        })
+        .expectStatus(400)
+        .expectBodyContains('A classification already exists for this client meeting');
+    });
+
+    it('should return error for non-existent meeting ID when creating classification', () => {
+      return pactum
+        .spec()
+        .post('/client-classifications')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .withBody(invalidMeetingClassificationDto)
+        .expectStatus(400)
+        .expectBodyContains('Client meeting with the provided ID does not exist');
+    });
+
+    it('should return error for non-existent classification ID', () => {
+      return pactum
+        .spec()
+        .get('/client-classifications/999999')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(404)
+        .expectBodyContains('Client classification not found');
+    });
+
+    it('should delete a classification', () => {
+      return pactum
+        .spec()
+        .delete('/client-classifications/$S{classificationId}')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(200)
+        .expectBodyContains('Client classification deleted successfully');
+    });
+
+    it('should return error when trying to delete non-existent classification', () => {
+      return pactum
+        .spec()
+        .delete('/client-classifications/$S{classificationId}')
+        .withHeaders({ Authorization: 'Bearer $S{userToken}' })
+        .expectStatus(404)
+        .expectBodyContains('Client classification not found');
     });
   });
 });

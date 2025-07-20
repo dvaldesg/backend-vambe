@@ -1,23 +1,77 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# AI Worker Setup
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+El AI Worker está configurado para procesar las clasificaciones de reuniones usando OpenAI y guardarlas en la base de datos.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
+## Configuración Completada
+
+1. ✅ Instalación de Prisma y cliente de Prisma
+2. ✅ Configuración del servicio y módulo de Prisma  
+3. ✅ Instalación de dependencias para colas (Bull, Redis, OpenAI)
+4. ✅ Creación del servicio de clasificación AI
+5. ✅ Configuración del consumidor de colas
+6. ✅ Dockerización del ai-worker
+7. ✅ Integración en docker-compose.yml (puerto 3343)
+
+## Arquitectura
+
+- **API**: Se encarga de encolar trabajos de clasificación usando `AiClassificationService.enqueueClassificationJob()`
+- **AI Worker**: Consume los trabajos de Redis y procesa las clasificaciones usando OpenAI, guardándolas en la base de datos
+
+## Variables de Entorno Necesarias
+
+Asegúrate de tener estas variables en tu archivo `.env`:
+
+```env
+# Database
+DATABASE_URL="postgresql://usuario:password@dev-db:5432/vambe_db"
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# OpenAI
+OPENAI_API_KEY=tu_api_key_de_openai
+```
+
+## Cómo Usar
+
+1. **Levantar todos los servicios:**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Ver logs del ai-worker:**
+   ```bash
+   docker-compose logs -f ai-worker
+   ```
+
+3. **Encolar un trabajo desde la API:**
+   El servicio en la API ya tiene el método `enqueueClassificationJob()` configurado. Solo descomenta las líneas necesarias.
+
+## Flujo de Trabajo
+
+1. La API recibe una reunión con transcripción
+2. La API encola un trabajo de clasificación usando `AiClassificationService.enqueueClassificationJob()`
+3. El AI Worker consume el trabajo de Redis
+4. El AI Worker procesa la transcripción con OpenAI
+5. El AI Worker guarda la clasificación en la base de datos
+6. El trabajo se marca como completado
+
+## Testing
+
+Para probar que todo funciona:
+
+1. Crea una reunión con transcripción en la API
+2. Llama al endpoint para clasificar la reunión
+3. Verifica en los logs del ai-worker que se procesó
+4. Verifica en la base de datos que se creó la clasificación
+
+## Puertos
+
+- API: 3333
+- AI Worker: 3343  
+- Redis: 6379
+- PostgreSQL: 5434
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 

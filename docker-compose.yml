@@ -21,6 +21,7 @@ services:
       - .env
     ports:
       - '3333:3333'
+      - '5555:5555'
     networks:
       - dev-network
     depends_on:
@@ -28,6 +29,25 @@ services:
       - dev-db
     volumes:
       - ./api:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  ai-worker:
+    build:
+      context: ./ai-worker
+      dockerfile: Dockerfile
+    container_name: ai-worker
+    env_file:
+      - .env
+    ports:
+      - '3343:3343'
+    networks:
+      - dev-network
+    depends_on:
+      - redis
+      - dev-db
+    volumes:
+      - ./ai-worker:/app
       - /app/node_modules
     restart: unless-stopped
 

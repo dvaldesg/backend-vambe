@@ -81,7 +81,12 @@ export class ClientMeetingService {
                         phone: meeting.phone,
                     };
                     
-                    await this.aiClassificationService.attachClassification(meetingDto);
+                    const status = await this.aiClassificationService.enqueueClassificationJob(meetingDto);
+                    if (status) {
+                        Logger.log(`Classification job enqueued for meeting ID: ${meeting.id}, status: ${status.status}, jobId: ${status.jobId}`);
+                    } else {
+                        Logger.warn(`Failed to enqueue classification job for meeting ID: ${meeting.id}`);
+                    }
                 }
             } catch (error) {
             }

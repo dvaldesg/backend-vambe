@@ -1,17 +1,48 @@
 version: "3.8"
 
 services:
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - '6379:6379'
+    networks:
+      - dev-network
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: api
+    env_file:
+      - .env
+    ports:
+      - '3333:3333'
+    networks:
+      - dev-network
+    depends_on:
+      - redis
+      - dev-db
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    restart: unless-stopped
+
   dev-db:
     image: postgres:14
     container_name: dev-db
     env_file:
       - .env
     ports:
-      - "5434:5432"
+      - '5434:5432'
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
       - dev-network
+    restart: unless-stopped
 
   test-db:
     image: postgres:14
@@ -19,9 +50,10 @@ services:
     env_file:
       - .env
     ports:
-      - "5435:5432"
+      - '5435:5432'
     networks:
       - dev-network
+    restart: unless-stopped
 
 volumes:
   db_data:

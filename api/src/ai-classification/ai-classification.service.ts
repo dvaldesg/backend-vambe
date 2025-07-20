@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommercialSector, LeadSource, InterestReason, VambeModel } from '../client_classification/enum';
 import { MeetingForClassificationDto, ClassificationResultDto } from './dto';
+import { ClassificationProducer } from '../queue/queue.service';
 
 @Injectable()
 export class AiClassificationService {
@@ -12,6 +13,7 @@ export class AiClassificationService {
   constructor(
     config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly producer: ClassificationProducer,
   ) {
     const apiKey = config.get<string>('OPENAI_API_KEY');
     if (!apiKey) {
@@ -24,91 +26,105 @@ export class AiClassificationService {
   }
 
 
-  async classifyMeeting(meeting: MeetingForClassificationDto): Promise<ClassificationResultDto> {
-
+  async enqueueClassificationJob(meeting: MeetingForClassificationDto) {
     if (!meeting.transcription || meeting.transcription.trim().length === 0) {
       throw new Error('Meeting transcription is required for classification');
     }
 
     const prompt = this.buildClassificationPrompt(meeting);
-
     try {
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        temperature: 0,
-        top_p: 1,
-        stop: ['\n\n'],
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert business analyst specializing in client classification for a software company called Vambe. You analyze meeting transcriptions and provide structured classifications in JSON format. Always respond with valid JSON only.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-      });
+      const job = await this.producer.enqueue(prompt, { meetingId: meeting.id });
+      return { status: 'enqueued', jobId: job.id };
+    } catch (error) {
+      console.error('Error enqueuing classification job:', error);
+      throw new Error('Failed to enqueue classification job');
+    }
+  }
 
-      const responseContent = completion.choices[0]?.message?.content;
+  // async classifyMeeting(meeting: MeetingForClassificationDto): Promise<ClassificationResultDto> {
+  async classifyMeeting(meeting: MeetingForClassificationDto) {
+    if (!meeting.transcription || meeting.transcription.trim().length === 0) {
+      throw new Error('Meeting transcription is required for classification');
+    }
+    
+    // const prompt = this.buildClassificationPrompt(meeting);
 
-      console.log('Response from OpenAI:', responseContent);
+    // try {
+    //   const completion = await this.openai.chat.completions.create({
+    //     model: 'gpt-4o-mini',
+    //     temperature: 0,
+    //     top_p: 1,
+    //     stop: ['\n\n'],
+    //     messages: [
+    //       {
+    //         role: 'system',
+    //         content: 'You are an expert business analyst specializing in client classification for a software company called Vambe. You analyze meeting transcriptions and provide structured classifications in JSON format. Always respond with valid JSON only.'
+    //       },
+    //       {
+    //         role: 'user',
+    //         content: prompt
+    //       }
+    //     ],
+    //   });
 
-      if (!responseContent) {
-        throw new Error('No response received from OpenAI');
-      }
+    //   const responseContent = completion.choices[0]?.message?.content;
 
-      const cleanedResponse = this.cleanJsonResponse(responseContent);
-      const classification = JSON.parse(cleanedResponse) as ClassificationResultDto;
+    //   console.log('Response from OpenAI:', responseContent);
 
-      this.validateClassification(classification);
+    //   if (!responseContent) {
+    //     throw new Error('No response received from OpenAI');
+    //   }
+
+    //   const cleanedResponse = this.cleanJsonResponse(responseContent);
+    //   const classification = JSON.parse(cleanedResponse) as ClassificationResultDto;
+
+    //   this.validateClassification(classification);
       
-      return classification;
+    //   return classification;
 
-    } catch (error) {
-      console.error('Error during classification:', error);
-      throw new Error(`Failed to classify meeting: ${error.message}`);
-    }
+    // } catch (error) {
+    //   console.error('Error during classification:', error);
+    //   throw new Error(`Failed to classify meeting: ${error.message}`);
+    // }
   }
 
+  // async attachClassification(meeting: MeetingForClassificationDto): Promise<void> {
+  //   try {
 
-  async attachClassification(meeting: MeetingForClassificationDto): Promise<void> {
-    try {
+  //     const existingClassification = await this.prisma.clientClassification.findUnique({
+  //       where: { clientMeetingId: meeting.id }
+  //     });
 
-      const existingClassification = await this.prisma.clientClassification.findUnique({
-        where: { clientMeetingId: meeting.id }
-      });
+  //     if (existingClassification) {
+  //       return;
+  //     }
 
-      if (existingClassification) {
-        return;
-      }
+  //     const classification = await this.classifyMeeting(meeting);
 
-      const classification = await this.classifyMeeting(meeting);
-
-      await this.prisma.clientClassification.create({
-        data: {
-          clientMeetingId: meeting.id,
-          commercialSector: classification.commercialSector,
-          leadSource: classification.leadSource,
-          interestReason: classification.interestReason,
-          hasDemandPeaks: classification.hasDemandPeaks,
-          hasSeasonalDemand: classification.hasSeasonalDemand,
-          estimatedDailyInteractions: classification.estimatedDailyInteractions,
-          estimatedWeeklyInteractions: classification.estimatedWeeklyInteractions,
-          estimatedMonthlyInteractions: classification.estimatedMonthlyInteractions,
-          hasTechTeam: classification.hasTechTeam,
-          vambeModel: classification.vambeModel,
-          isPotentialClient: classification.isPotentialClient,
-          isProblemClient: classification.isProblemClient,
-          isLostClient: classification.isLostClient,
-          shouldBeContacted: classification.shouldBeContacted,
-          confidenceScore: classification.confidenceScore,
-          modelVersion: classification.modelVersion,
-        }
-      });
-    } catch (error) {
-    }
-  }
+  //     await this.prisma.clientClassification.create({
+  //       data: {
+  //         clientMeetingId: meeting.id,
+  //         commercialSector: classification.commercialSector,
+  //         leadSource: classification.leadSource,
+  //         interestReason: classification.interestReason,
+  //         hasDemandPeaks: classification.hasDemandPeaks,
+  //         hasSeasonalDemand: classification.hasSeasonalDemand,
+  //         estimatedDailyInteractions: classification.estimatedDailyInteractions,
+  //         estimatedWeeklyInteractions: classification.estimatedWeeklyInteractions,
+  //         estimatedMonthlyInteractions: classification.estimatedMonthlyInteractions,
+  //         hasTechTeam: classification.hasTechTeam,
+  //         vambeModel: classification.vambeModel,
+  //         isPotentialClient: classification.isPotentialClient,
+  //         isProblemClient: classification.isProblemClient,
+  //         isLostClient: classification.isLostClient,
+  //         shouldBeContacted: classification.shouldBeContacted,
+  //         confidenceScore: classification.confidenceScore,
+  //         modelVersion: classification.modelVersion,
+  //       }
+  //     });
+  //   } catch (error) {
+  //   }
+  // }
 
 
   private buildClassificationPrompt(meeting: MeetingForClassificationDto): string {
@@ -168,59 +184,59 @@ Respond with ONLY the JSON object, no additional text or formatting.
   }
 
 
-  private cleanJsonResponse(response: string): string {
-    let cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+//   private cleanJsonResponse(response: string): string {
+//     let cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '');
     
-    const start = cleaned.indexOf('{');
-    const end = cleaned.lastIndexOf('}');
+//     const start = cleaned.indexOf('{');
+//     const end = cleaned.lastIndexOf('}');
     
-    if (start !== -1 && end !== -1 && end > start) {
-      cleaned = cleaned.substring(start, end + 1);
-    }
+//     if (start !== -1 && end !== -1 && end > start) {
+//       cleaned = cleaned.substring(start, end + 1);
+//     }
     
-    return cleaned.trim();
-  }
+//     return cleaned.trim();
+//   }
 
 
-  private validateClassification(classification: ClassificationResultDto): void {
-    const required = [
-      'commercialSector', 'leadSource', 'interestReason',
-      'hasDemandPeaks', 'hasSeasonalDemand',
-      'estimatedDailyInteractions', 'estimatedWeeklyInteractions', 'estimatedMonthlyInteractions',
-      'hasTechTeam', 'isPotentialClient', 'isProblemClient', 'isLostClient',
-      'shouldBeContacted', 'confidenceScore', 'modelVersion'
-    ];
+//   private validateClassification(classification: ClassificationResultDto): void {
+//     const required = [
+//       'commercialSector', 'leadSource', 'interestReason',
+//       'hasDemandPeaks', 'hasSeasonalDemand',
+//       'estimatedDailyInteractions', 'estimatedWeeklyInteractions', 'estimatedMonthlyInteractions',
+//       'hasTechTeam', 'isPotentialClient', 'isProblemClient', 'isLostClient',
+//       'shouldBeContacted', 'confidenceScore', 'modelVersion'
+//     ];
 
-    for (const field of required) {
-      if (classification[field] === undefined || classification[field] === null) {
-        throw new Error(`Missing required field: ${field}`);
-      }
-    }
+//     for (const field of required) {
+//       if (classification[field] === undefined || classification[field] === null) {
+//         throw new Error(`Missing required field: ${field}`);
+//       }
+//     }
 
-    if (!Object.values(CommercialSector).includes(classification.commercialSector)) {
-      throw new Error(`Invalid commercialSector: ${classification.commercialSector}`);
-    }
+//     if (!Object.values(CommercialSector).includes(classification.commercialSector)) {
+//       throw new Error(`Invalid commercialSector: ${classification.commercialSector}`);
+//     }
 
-    if (!Object.values(LeadSource).includes(classification.leadSource)) {
-      throw new Error(`Invalid leadSource: ${classification.leadSource}`);
-    }
+//     if (!Object.values(LeadSource).includes(classification.leadSource)) {
+//       throw new Error(`Invalid leadSource: ${classification.leadSource}`);
+//     }
 
-    if (!Object.values(InterestReason).includes(classification.interestReason)) {
-      throw new Error(`Invalid interestReason: ${classification.interestReason}`);
-    }
+//     if (!Object.values(InterestReason).includes(classification.interestReason)) {
+//       throw new Error(`Invalid interestReason: ${classification.interestReason}`);
+//     }
 
-    if (classification.vambeModel && !Object.values(VambeModel).includes(classification.vambeModel)) {
-      throw new Error(`Invalid vambeModel: ${classification.vambeModel}`);
-    }
+//     if (classification.vambeModel && !Object.values(VambeModel).includes(classification.vambeModel)) {
+//       throw new Error(`Invalid vambeModel: ${classification.vambeModel}`);
+//     }
 
-    if (classification.confidenceScore < 0 || classification.confidenceScore > 1) {
-      throw new Error(`Invalid confidenceScore: ${classification.confidenceScore}`);
-    }
+//     if (classification.confidenceScore < 0 || classification.confidenceScore > 1) {
+//       throw new Error(`Invalid confidenceScore: ${classification.confidenceScore}`);
+//     }
 
-    if (classification.estimatedDailyInteractions < 0 || 
-        classification.estimatedWeeklyInteractions < 0 || 
-        classification.estimatedMonthlyInteractions < 0) {
-      throw new Error('Interaction estimates cannot be negative');
-    }
-  }
+//     if (classification.estimatedDailyInteractions < 0 || 
+//         classification.estimatedWeeklyInteractions < 0 || 
+//         classification.estimatedMonthlyInteractions < 0) {
+//       throw new Error('Interaction estimates cannot be negative');
+//     }
+//   }
 }

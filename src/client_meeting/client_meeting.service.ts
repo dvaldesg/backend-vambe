@@ -1,12 +1,17 @@
-import { ForbiddenException, Injectable, BadRequestException } from '@nestjs/common';
+import { ForbiddenException, Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClientMeetingDto } from './dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { parseDate, isValidDate } from '../utils';
+import { AiClassificationService } from '../ai-classification/ai-classification.service';
+import { MeetingForClassificationDto } from '../ai-classification/dto';
 
 @Injectable()
 export class ClientMeetingService {
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private aiClassificationService: AiClassificationService,
+    ) {}
 
     async getAllClientMeetings() {
         return this.prisma.clientMeeting.findMany();
@@ -39,7 +44,9 @@ export class ClientMeetingService {
                     closed: dto.closed,
                     transcription: dto.transcription,
                 }
-            })
+            });
+
+            this.attachClassificationSafely(newClientMeeting);
 
             return newClientMeeting;
 
@@ -59,5 +66,25 @@ export class ClientMeetingService {
 
             throw error;
         }
+    }
+
+    private attachClassificationSafely(meeting: any): void {
+        setImmediate(async () => {
+            try {
+                if (meeting.transcription && meeting.transcription.trim().length > 30) {
+                    
+                    const meetingDto: MeetingForClassificationDto = {
+                        id: meeting.id,
+                        transcription: meeting.transcription,
+                        name: meeting.name,
+                        email: meeting.email,
+                        phone: meeting.phone,
+                    };
+                    
+                    await this.aiClassificationService.attachClassification(meetingDto);
+                }
+            } catch (error) {
+            }
+        });
     }
 }

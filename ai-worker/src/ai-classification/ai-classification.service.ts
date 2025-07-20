@@ -27,16 +27,16 @@ export class AiClassificationService {
   async processClassificationJob(jobData: ClassificationJobData): Promise<void> {
     try {
       const meeting = await this.prisma.clientMeeting.findUnique({
-        where: { id: jobData.metadata.meetingId },
+        where: { id: jobData.meetingId },
         include: { classification: true }
       });
 
       if (!meeting) {
-        throw new Error(`Meeting with ID ${jobData.metadata.meetingId} not found`);
+        throw new Error(`Meeting with ID ${jobData.meetingId} not found`);
       }
 
       if (meeting.classification) {
-        console.log(`Meeting ${jobData.metadata.meetingId} already has classification, skipping.`);
+        console.log(`Meeting ${jobData.meetingId} already has classification, skipping.`);
         return;
       }
 
@@ -159,7 +159,7 @@ Based on this transcription, provide a JSON classification with the following st
   "commercialSector": "one of: ${commercialSectors}",
   "leadSource": "one of: ${leadSources}",
   "interestReason": "one of: ${interestReasons}",
-  "hasDemandPeaks": boolean (true if client mentions seasonal spikes, high traffic periods, or variable demand),
+  "hasDemandPeaks": boolean (true if client mentions seasonal spikes, high traffic periods, or variable demand. Mentioning growth is not enough.),
   "hasSeasonalDemand": boolean (true if client mentions Christmas, holidays, specific seasons affecting business),
   "estimatedDailyInteractions": number (estimate daily customer interactions based on business size/type, 0-10000),
   "estimatedWeeklyInteractions": number (weekly interactions, usually daily * 7),

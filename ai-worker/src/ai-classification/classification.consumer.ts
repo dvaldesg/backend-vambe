@@ -3,8 +3,7 @@ import { Job } from 'bull';
 import { AiClassificationService } from './ai-classification.service';
 
 export interface ClassificationJobData {
-  transcription: string;
-  metadata: { meetingId: number };
+  meetingId: number;
 }
 
 @Processor('classification')

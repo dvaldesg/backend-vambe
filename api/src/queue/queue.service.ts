@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QueueDto } from './dto';
 
 @Injectable()
 export class ClassificationProducer {
 
   constructor(@InjectQueue('classification') private queue: Queue) {}
 
-  async enqueue(prompt: string, metadata: any) {
+  async enqueue(queueDto: QueueDto) {
+
     const payload = {
-      prompt,
-      metadata,
-    }
+      meetingId: queueDto.meetingId,
+    };
+
     try {
       const job = await this.queue.add(
         'classify',

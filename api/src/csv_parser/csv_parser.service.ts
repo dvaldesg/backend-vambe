@@ -1,13 +1,16 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { processCsvFromBuffer, validateClientMeetingCsvRow } from '../utils';
 import { CsvProcessingResultDto, ClientMeetingCsvDto } from '../utils/dto';
 import { parseDate, isValidDate } from '../utils';
 import { CsvProcessingResponseDto } from './dto';
+import { AiClassificationService } from '../ai-classification/ai-classification.service';
 
 @Injectable()
 export class CsvParserService {
-    constructor(private prisma: PrismaService) {}
+    private readonly logger = new Logger(CsvParserService.name);
+
+    constructor(private prisma: PrismaService, private aiClassificationService: AiClassificationService) {}
 
     async processClientMeetingsCsv(buffer: Buffer): Promise<CsvProcessingResponseDto> {
         try {
@@ -38,6 +41,9 @@ export class CsvParserService {
             }
 
             const createdMeetings: any[] = [];
+            const alreadyCreatedMeetings: any[] = [];
+            let enqueuedJobs = 0;
+
             for (const meetingData of result.data) {
                 try {
                     const parsedDate = parseDate(meetingData.date);
@@ -56,6 +62,25 @@ export class CsvParserService {
                         continue;
                     }
 
+                    const existingMeeting = await this.prisma.clientMeeting.findFirst({
+                        where: { 
+                            name: meetingData.name,
+                            email: meetingData.email,
+                            salesmanName: meetingData.salesmanName,
+                            date: parseDate(meetingData.date)
+                        }
+                    });
+
+                    if (existingMeeting) {
+                        alreadyCreatedMeetings.push({ 
+                            name: meetingData.name,
+                            email: meetingData.email,
+                            salesmanName: meetingData.salesmanName,
+                            date: parseDate(meetingData.date)
+                        });
+                        continue;
+                    }
+
                     const newMeeting = await this.prisma.clientMeeting.create({
                         data: {
                             name: meetingData.name,
@@ -70,10 +95,27 @@ export class CsvParserService {
                     });
 
                     createdMeetings.push(newMeeting);
+
+                    if (meetingData.transcription && meetingData.transcription.trim().length > 0) {
+                        try {
+                            const classificationResult = await this.aiClassificationService.enqueueClassificationJob({
+                                id: newMeeting.id,
+                                name: newMeeting.name,
+                                transcription: newMeeting.transcription!,
+                                email: newMeeting.email,
+                                phone: newMeeting.phone,
+                            });
+                            
+                            this.logger.log(`Classification job enqueued for meeting ${newMeeting.id} with job ID: ${classificationResult.jobId}`);
+                            enqueuedJobs++;
+                        } catch (classificationError) {
+                            this.logger.warn(`Failed to enqueue classification job for meeting ${newMeeting.id}:`, classificationError.message);
+                        }
+                    }
                 } catch (error) {
                     result.errors.push(`Error creating meeting ${meetingData.name}: ${error.message}`);
                 }
-            }
+            }            
 
             return {
                 message: `Successfully processed ${result.totalRows} rows. Created ${createdSalesmen.length} salesmen and ${createdMeetings.length} meetings.`,
@@ -81,7 +123,8 @@ export class CsvParserService {
                 validRows: result.validRows,
                 errors: result.errors,
                 createdSalesmen,
-                createdMeetings
+                createdMeetings,
+                alreadyCreatedMeetings,
             };
 
         } catch (error) {

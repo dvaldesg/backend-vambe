@@ -30,6 +30,7 @@ services:
     volumes:
       - ./api:/app
       - /app/node_modules
+      - ./api/prisma:/app/prisma
     restart: unless-stopped
 
   ai-worker:
@@ -49,6 +50,7 @@ services:
     volumes:
       - ./ai-worker:/app
       - /app/node_modules
+      - ./ai-worker/prisma:/app/prisma
     restart: unless-stopped
 
   dev-db:

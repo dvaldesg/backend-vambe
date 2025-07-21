@@ -1,27 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
 import { MeetingForClassificationDto } from './dto';
 import { ClassificationProducer } from '../queue/queue.service';
 
 @Injectable()
 export class AiClassificationService {
-  private readonly openai: OpenAI;
 
-  constructor(
-    config: ConfigService,
-    private readonly producer: ClassificationProducer,
-  ) {
-    const apiKey = config.get<string>('OPENAI_API_KEY');
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required');
-    }
-
-    this.openai = new OpenAI({
-      apiKey: apiKey,
-    });
-  }
-
+  constructor(private readonly producer: ClassificationProducer) {}
 
   async enqueueClassificationJob(meeting: MeetingForClassificationDto) {
     if (!meeting.transcription || meeting.transcription.trim().length === 0) {

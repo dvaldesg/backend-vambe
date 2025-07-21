@@ -92,6 +92,8 @@ export class AiClassificationService {
       const cleanedResponse = this.cleanJsonResponse(responseContent);
       const classification = JSON.parse(cleanedResponse) as ClassificationResultDto;
 
+      this.mapInvalidEnumValues(classification);
+
       this.validateClassification(classification);
       
       return classification;
@@ -156,9 +158,9 @@ Meeting Information:
 Based on this transcription, provide a JSON classification with the following structure and guidelines:
 
 {
-  "commercialSector": "one of: ${commercialSectors}",
-  "leadSource": "one of: ${leadSources}",
-  "interestReason": "one of: ${interestReasons}",
+  "commercialSector": "one of: ${commercialSectors}" (Don't use 'OTHER' unless absolutely necessary. Don't create new sectors.),
+  "leadSource": "one of: ${leadSources}" (Don't use 'OTHER' unless absolutely necessary. Don't create new lead sources.),
+  "interestReason": "one of: ${interestReasons}" (Don't use 'OTHER' unless absolutely necessary. Don't create new interest reasons.),
   "hasDemandPeaks": boolean (true if client mentions seasonal spikes, high traffic periods, or variable demand. Mentioning growth is not enough.),
   "hasSeasonalDemand": boolean (true if client mentions Christmas, holidays, specific seasons affecting business),
   "estimatedDailyInteractions": number (estimate daily customer interactions based on business size/type, 0-10000),
@@ -204,8 +206,38 @@ Respond with ONLY the JSON object, no additional text or formatting.
     if (start !== -1 && end !== -1 && end > start) {
       cleaned = cleaned.substring(start, end + 1);
     }
+
+    cleaned = cleaned.replace(/"commercialSector":\s*"([^"]*)"/g, (match, sector) => {
+      if (!Object.values(CommercialSector).includes(sector as CommercialSector)) {
+        console.warn(`Invalid commercialSector detected: "${sector}", mapping to OTHER`);
+        return '"commercialSector": "OTHER"';
+      }
+      return match;
+    });
     
     return cleaned.trim();
+  }
+
+  private mapInvalidEnumValues(classification: ClassificationResultDto): void {
+    if (!Object.values(CommercialSector).includes(classification.commercialSector as CommercialSector)) {
+      console.warn(`Invalid commercialSector: "${classification.commercialSector}", mapping to OTHER`);
+      classification.commercialSector = CommercialSector.OTHER as any;
+    }
+
+    if (!Object.values(LeadSource).includes(classification.leadSource as LeadSource)) {
+      console.warn(`Invalid leadSource: "${classification.leadSource}", mapping to OTHER`);
+      classification.leadSource = LeadSource.OTHER as any;
+    }
+
+    if (!Object.values(InterestReason).includes(classification.interestReason as InterestReason)) {
+      console.warn(`Invalid interestReason: "${classification.interestReason}", mapping to OTHER`);
+      classification.interestReason = InterestReason.OTHER as any;
+    }
+
+    if (classification.vambeModel && !Object.values(VambeModel).includes(classification.vambeModel as VambeModel)) {
+      console.warn(`Invalid vambeModel: "${classification.vambeModel}", setting to null`);
+      classification.vambeModel = null;
+    }
   }
 
   private validateClassification(classification: ClassificationResultDto): void {

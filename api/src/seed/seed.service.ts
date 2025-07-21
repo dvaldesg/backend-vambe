@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiClassificationService } from '../ai-classification/ai-classification.service';
 import { processCsvFromBuffer, validateClientMeetingCsvRow } from '../utils';
 import { CsvProcessingResultDto, ClientMeetingCsvDto } from '../utils/dto';
 import { parseDate, isValidDate } from '../utils';
@@ -10,7 +11,10 @@ import * as path from 'path';
 export class SeedService {
     private readonly logger = new Logger(SeedService.name);
     
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private aiClassificationService: AiClassificationService,
+    ) {}
 
     async seedInitialData(): Promise<void> {
         try {           
@@ -63,13 +67,16 @@ export class SeedService {
         }
 
         const createdMeetings: any[] = [];
+        let enqueuedJobs = 0;
         
         for (const meetingData of result.data) {
             try {
                 const existingMeeting = await this.prisma.clientMeeting.findFirst({
                     where: { 
+                        name: meetingData.name,
                         email: meetingData.email,
-                        salesmanName: meetingData.salesmanName 
+                        salesmanName: meetingData.salesmanName,
+                        date: parseDate(meetingData.date)
                     }
                 });
 
@@ -105,6 +112,23 @@ export class SeedService {
                 });
 
                 createdMeetings.push(newMeeting);
+
+                if (meetingData.transcription && meetingData.transcription.trim().length > 0) {
+                    try {
+                        const classificationResult = await this.aiClassificationService.enqueueClassificationJob({
+                            id: newMeeting.id,
+                            name: newMeeting.name,
+                            transcription: newMeeting.transcription!,
+                            email: newMeeting.email,
+                            phone: newMeeting.phone,
+                        });
+                        
+                        this.logger.log(`Classification job enqueued for meeting ${newMeeting.id} with job ID: ${classificationResult.jobId}`);
+                        enqueuedJobs++;
+                    } catch (classificationError) {
+                        this.logger.warn(`Failed to enqueue classification job for meeting ${newMeeting.id}:`, classificationError.message);
+                    }
+                }
                 
             } catch (error) {
                 this.logger.error(`Error creating meeting ${meetingData.name}:`, error);
@@ -114,5 +138,7 @@ export class SeedService {
         if (result.errors.length > 0) {
             this.logger.warn('CSV processing errors:', result.errors);
         }
+
+        this.logger.log(`Seeding completed: ${createdSalesmen.length} salesmen created, ${createdMeetings.length} meetings created, ${enqueuedJobs} classification jobs enqueued`);
     }
 }

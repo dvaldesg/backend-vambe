@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
@@ -10,6 +11,7 @@ import { ClientClassificationModule } from './client_classification/client_class
 import { AiClassificationModule } from './ai-classification/ai-classification.module';
 import { CsvParserModule } from './csv_parser/csv_parser.module';
 import { SeedModule } from './seed/seed.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { SeedModule } from './seed/seed.module';
     AiClassificationModule,
     CsvParserModule,
     SeedModule,
+    QueueModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

@@ -24,4 +24,9 @@ export class CsvProcessingResponseDto {
     @ValidateNested({ each: true })
     @Type(() => Object)
     createdMeetings: any[];
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => Object)
+    alreadyCreatedMeetings: any[];
 }

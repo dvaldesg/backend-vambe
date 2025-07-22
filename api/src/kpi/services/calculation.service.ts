@@ -200,4 +200,100 @@ export class CalculationService {
       .map(([commercial_sector, quantity]) => ({ commercial_sector, quantity }))
       .sort((a, b) => b.quantity - a.quantity);
   }
+
+  async getLeadsSourceSuccessRateData(): Promise<{ leadSource: string; closed: number; notClosed: number; successRate: number }[]> {
+    const meetingsWithClassification = await this.prisma.clientMeeting.findMany({
+      where: {
+        classification: {
+          isNot: null
+        }
+      },
+      select: {
+        closed: true,
+        classification: {
+          select: {
+            leadSource: true
+          }
+        }
+      }
+    });
+
+    const sourceStats = meetingsWithClassification.reduce((acc, meeting) => {
+      const source = meeting.classification?.leadSource || 'Sin clasificar';
+      
+      if (!acc[source]) {
+        acc[source] = { closed: 0, notClosed: 0 };
+      }
+      
+      if (meeting.closed) {
+        acc[source].closed++;
+      } else {
+        acc[source].notClosed++;
+      }
+      
+      return acc;
+    }, {} as Record<string, { closed: number; notClosed: number }>);
+
+    return Object.entries(sourceStats)
+      .map(([leadSource, stats]) => {
+        const total = stats.closed + stats.notClosed;
+        const successRate = total > 0 ? Math.round((stats.closed / total) * 100 * 100) / 100 : 0;
+        
+        return {
+          leadSource,
+          closed: stats.closed,
+          notClosed: stats.notClosed,
+          successRate
+        };
+      })
+      .sort((a, b) => b.successRate - a.successRate);
+  }
+
+  async getCommercialSectorSuccessRateData(): Promise<{ commercialSector: string; closed: number; notClosed: number; successRate: number }[]> {
+    const meetingsWithClassification = await this.prisma.clientMeeting.findMany({
+      where: {
+        classification: {
+          isNot: null
+        }
+      },
+      select: {
+        closed: true,
+        classification: {
+          select: {
+            commercialSector: true
+          }
+        }
+      }
+    });
+
+    const sectorStats = meetingsWithClassification.reduce((acc, meeting) => {
+      const sector = meeting.classification?.commercialSector || 'Sin clasificar';
+      
+      if (!acc[sector]) {
+        acc[sector] = { closed: 0, notClosed: 0 };
+      }
+      
+      if (meeting.closed) {
+        acc[sector].closed++;
+      } else {
+        acc[sector].notClosed++;
+      }
+      
+      return acc;
+    }, {} as Record<string, { closed: number; notClosed: number }>);
+
+    return Object.entries(sectorStats)
+      .map(([commercialSector, stats]) => {
+        const total = stats.closed + stats.notClosed;
+        const successRate = total > 0 ? Math.round((stats.closed / total) * 100 * 100) / 100 : 0;
+        
+        return {
+          commercialSector,
+          closed: stats.closed,
+          notClosed: stats.notClosed,
+          successRate
+        };
+      })
+      .sort((a, b) => b.successRate - a.successRate);
+  }
 }

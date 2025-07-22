@@ -1,7 +1,7 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { KpiService } from './kpi.service';
 import { JwtGuard } from '../auth/guard';
-import { SectionCardsDto, ChartAreaInteractiveDto, NewLeadsDto, VambeReasonDto, LeadsSourceDto, CommercialSectorsDto } from './dto';
+import { SectionCardsDto, ChartAreaInteractiveDto, NewLeadsDto, VambeReasonDto, LeadsSourceDto, CommercialSectorsDto, LeadsSourceSuccessRateDto, CommercialSectorSuccessRateDto } from './dto';
 
 @UseGuards(JwtGuard)
 @Controller('kpi')
@@ -36,5 +36,15 @@ export class KpiController {
     @Get('commercial-sectors')
     async getCommercialSectors(): Promise<CommercialSectorsDto[]> {
         return this.kpiService.getCommercialSectors();
+    }
+
+    @Get('leads-source-success-rate')
+    async getLeadsSourceSuccessRate(): Promise<LeadsSourceSuccessRateDto[]> {
+        return this.kpiService.getLeadsSourceSuccessRate();
+    }
+
+    @Get('commercial-sector-success-rate')
+    async getCommercialSectorSuccessRate(): Promise<CommercialSectorSuccessRateDto[]> {
+        return this.kpiService.getCommercialSectorSuccessRate();
     }
 }

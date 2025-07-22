@@ -17,8 +17,8 @@ export class TrendingService {
         }
 
         const now = lastMeeting.date;
-        const threeMonthsAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-        const sixMonthsAgo = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000));
+        const threeMonthsAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+        const sixMonthsAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
 
         const currentPeriodMeetings = await this.prisma.clientMeeting.findMany({
             where: {

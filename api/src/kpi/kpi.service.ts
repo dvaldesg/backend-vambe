@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SectionCardsDto, ChartAreaInteractiveDto } from './dto';
+import { SectionCardsDto, ChartAreaInteractiveDto, NewLeadsDto, VambeReasonDto, LeadsSourceDto, CommercialSectorsDto } from './dto';
 import { TrendingService, CalculationService } from './services';
 
 @Injectable()
@@ -48,4 +48,20 @@ export class KpiService {
     async getChartAreaInteractive(): Promise<ChartAreaInteractiveDto[]> {
         return this.calculationService.getChartAreaData();
     }
+
+    async getNewLeads(): Promise<NewLeadsDto[]> {
+        return this.calculationService.getNewLeadsData();
+    }
+
+    async getVambeReason(): Promise<VambeReasonDto[]> {
+        return this.calculationService.getVambeReasonData();
+    }
+
+    async getLeadsSource(): Promise<LeadsSourceDto[]> {
+    return this.calculationService.getLeadsSourceData();
+  }
+
+  async getCommercialSectors(): Promise<CommercialSectorsDto[]> {
+    return this.calculationService.getCommercialSectorsData();
+  }
 }

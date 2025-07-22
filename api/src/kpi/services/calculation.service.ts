@@ -296,4 +296,115 @@ export class CalculationService {
       })
       .sort((a, b) => b.successRate - a.successRate);
   }
+
+  async getSalesmanPerformanceData(): Promise<{ salesmanName: string; data: { month: string; totalMeetings: number; closedMeetings: number }[] }[]> {
+    const meetings = await this.prisma.clientMeeting.findMany({
+      select: {
+        salesmanName: true,
+        date: true,
+        closed: true
+      },
+      orderBy: {
+        date: 'asc'
+      }
+    });
+
+    if (meetings.length === 0) {
+      return [];
+    }
+
+    const dates = meetings.map(m => new Date(m.date));
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+
+    const allMonths: string[] = [];
+    let currentDate = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    const endDate = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+
+    while (currentDate <= endDate) {
+      allMonths.push(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`);
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+
+    const salesmanStats = meetings.reduce((acc, meeting) => {
+      const salesmanName = meeting.salesmanName;
+      const date = new Date(meeting.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!acc[salesmanName]) {
+        acc[salesmanName] = {};
+      }
+      
+      if (!acc[salesmanName][monthKey]) {
+        acc[salesmanName][monthKey] = { totalMeetings: 0, closedMeetings: 0 };
+      }
+      
+      acc[salesmanName][monthKey].totalMeetings++;
+      if (meeting.closed) {
+        acc[salesmanName][monthKey].closedMeetings++;
+      }
+      
+      return acc;
+    }, {} as Record<string, Record<string, { totalMeetings: number; closedMeetings: number }>>);
+
+    return Object.entries(salesmanStats)
+      .map(([salesmanName, monthlyData]) => ({
+        salesmanName,
+        data: allMonths.map(month => ({
+          month,
+          totalMeetings: monthlyData[month]?.totalMeetings || 0,
+          closedMeetings: monthlyData[month]?.closedMeetings || 0
+        }))
+      }))
+      .sort((a, b) => a.salesmanName.localeCompare(b.salesmanName));
+  }
+
+  async getSalesmanSuccessRateData(salesmanId: number): Promise<{ commercialSector: string; closed: number; notClosed: number; successRate: number }[]> {
+    const meetingsWithClassification = await this.prisma.clientMeeting.findMany({
+      where: {
+        salesmanId: salesmanId,
+        classification: {
+          isNot: null
+        }
+      },
+      select: {
+        closed: true,
+        classification: {
+          select: {
+            commercialSector: true
+          }
+        }
+      }
+    });
+
+    const sectorStats = meetingsWithClassification.reduce((acc, meeting) => {
+      const sector = meeting.classification?.commercialSector || 'Sin clasificar';
+      
+      if (!acc[sector]) {
+        acc[sector] = { closed: 0, notClosed: 0 };
+      }
+      
+      if (meeting.closed) {
+        acc[sector].closed++;
+      } else {
+        acc[sector].notClosed++;
+      }
+      
+      return acc;
+    }, {} as Record<string, { closed: number; notClosed: number }>);
+
+    return Object.entries(sectorStats)
+      .map(([commercialSector, stats]) => {
+        const total = stats.closed + stats.notClosed;
+        const successRate = total > 0 ? Math.round((stats.closed / total) * 100 * 100) / 100 : 0;
+        
+        return {
+          commercialSector,
+          closed: stats.closed,
+          notClosed: stats.notClosed,
+          successRate
+        };
+      })
+      .sort((a, b) => b.successRate - a.successRate);
+  }
 }

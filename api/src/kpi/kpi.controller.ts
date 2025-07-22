@@ -1,7 +1,7 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, Param, ParseIntPipe } from '@nestjs/common';
 import { KpiService } from './kpi.service';
 import { JwtGuard } from '../auth/guard';
-import { SectionCardsDto, ChartAreaInteractiveDto, NewLeadsDto, VambeReasonDto, LeadsSourceDto, CommercialSectorsDto, LeadsSourceSuccessRateDto, CommercialSectorSuccessRateDto } from './dto';
+import { SectionCardsDto, ChartAreaInteractiveDto, NewLeadsDto, VambeReasonDto, LeadsSourceDto, CommercialSectorsDto, LeadsSourceSuccessRateDto, CommercialSectorSuccessRateDto, SalesmanPerformanceDto, SalesmanSuccessRateDto } from './dto';
 
 @UseGuards(JwtGuard)
 @Controller('kpi')
@@ -46,5 +46,15 @@ export class KpiController {
     @Get('commercial-sector-success-rate')
     async getCommercialSectorSuccessRate(): Promise<CommercialSectorSuccessRateDto[]> {
         return this.kpiService.getCommercialSectorSuccessRate();
+    }
+
+    @Get('salesman-performance')
+    async getSalesmanPerformance(): Promise<SalesmanPerformanceDto[]> {
+        return this.kpiService.getSalesmanPerformance();
+    }
+
+    @Get('salesman-success-rate/:id')
+    async getSalesmanSuccessRate(@Param('id', ParseIntPipe) salesmanId: number): Promise<SalesmanSuccessRateDto[]> {
+        return this.kpiService.getSalesmanSuccessRate(salesmanId);
     }
 }

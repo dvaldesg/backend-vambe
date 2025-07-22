@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SectionCardsDto, ChartAreaInteractiveDto, NewLeadsDto, VambeReasonDto, LeadsSourceDto, CommercialSectorsDto, LeadsSourceSuccessRateDto, CommercialSectorSuccessRateDto } from './dto';
+import { SectionCardsDto, ChartAreaInteractiveDto, NewLeadsDto, VambeReasonDto, LeadsSourceDto, CommercialSectorsDto, LeadsSourceSuccessRateDto, CommercialSectorSuccessRateDto, SalesmanPerformanceDto, SalesmanSuccessRateDto } from './dto';
 import { TrendingService, CalculationService } from './services';
 
 @Injectable()
@@ -71,5 +71,13 @@ export class KpiService {
 
   async getCommercialSectorSuccessRate(): Promise<CommercialSectorSuccessRateDto[]> {
     return this.calculationService.getCommercialSectorSuccessRateData();
+  }
+
+  async getSalesmanPerformance(): Promise<SalesmanPerformanceDto[]> {
+    return this.calculationService.getSalesmanPerformanceData();
+  }
+
+  async getSalesmanSuccessRate(salesmanId: number): Promise<SalesmanSuccessRateDto[]> {
+    return this.calculationService.getSalesmanSuccessRateData(salesmanId);
   }
 }

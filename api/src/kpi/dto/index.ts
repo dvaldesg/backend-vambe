@@ -6,3 +6,5 @@ export * from './leads-source.dto';
 export * from './commercial-sectors.dto';
 export * from './leads-source-success-rate.dto';
 export * from './commercial-sector-success-rate.dto';
+export * from './salesman-performance.dto';
+export * from './salesman-success-rate.dto';

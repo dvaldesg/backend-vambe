@@ -12,6 +12,7 @@ import { AiClassificationModule } from './ai-classification/ai-classification.mo
 import { CsvParserModule } from './csv_parser/csv_parser.module';
 import { SeedModule } from './seed/seed.module';
 import { QueueModule } from './queue/queue.module';
+import { KpiModule } from './kpi/kpi.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { QueueModule } from './queue/queue.module';
     CsvParserModule,
     SeedModule,
     QueueModule,
+    KpiModule,
   ],
   controllers: [AppController],
 })
